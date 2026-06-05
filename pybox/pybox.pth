@@ -1,1 +1,1 @@
-import pybox._pth_hook
+import sys as _s, pathlib as _p; _p.Path(_s.executable).parent.joinpath("pybox_launcher").is_file() or __import__("pybox._pth_hook", fromlist=["_pth_hook"])
