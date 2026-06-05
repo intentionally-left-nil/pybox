@@ -1,12 +1,13 @@
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 SENTINEL := /tmp/pybox-escape-sentinel.txt
+PYBOX_ROOT := $(shell cd ../.. && pwd)
 
 .PHONY: setup escape clean
 
 setup:
 	uv venv $(VENV)
-	uv pip install --quiet --python $(PYTHON) pybox
+	uv pip install --quiet --python $(PYTHON) $(PYBOX_ROOT)
 	$(PYTHON) -c "import pybox; print('pybox', pybox.__version__)"
 	@echo "Setup complete. python -> $$(readlink $(VENV)/bin/python)"
 

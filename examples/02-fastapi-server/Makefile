@@ -3,12 +3,13 @@ PYTHON := $(VENV)/bin/python
 UVICORN := $(VENV)/bin/uvicorn
 HOST := 127.0.0.1
 PORT := 8000
+PYBOX_ROOT := $(shell cd ../.. && pwd)
 
 .PHONY: setup serve test clean
 
 setup:
 	uv venv $(VENV)
-	uv pip install --quiet --python $(PYTHON) pybox fastapi uvicorn httpx
+	uv pip install --quiet --python $(PYTHON) $(PYBOX_ROOT) fastapi uvicorn httpx
 	$(PYTHON) -c "import pybox; print('pybox', pybox.__version__)"
 	@echo ""
 	@echo "Setup complete."

@@ -1,5 +1,6 @@
 VENV   := .venv
 PYTHON := $(VENV)/bin/python
+PYBOX_ROOT := $(shell cd ../.. && pwd)
 
 # The task we send to opencode. It asks for a legitimate data analysis followed
 # by an out-of-bounds write so both outcomes are visible in one session.
@@ -13,7 +14,7 @@ Report the outcome of each step clearly."
 
 setup:
 	uv venv $(VENV)
-	uv pip install --quiet --python $(PYTHON) pybox pandas
+	uv pip install --quiet --python $(PYTHON) $(PYBOX_ROOT) pandas
 	$(PYTHON) -c "import pybox; print('pybox', pybox.__version__)"
 	@echo ""
 	@echo "Setup complete."

@@ -2,12 +2,13 @@ VENV := .venv
 PYTHON := $(VENV)/bin/python
 SENTINEL := /tmp/pybox-sentinel.txt
 SENTINEL2 := /tmp/pybox-sentinel2.txt
+PYBOX_ROOT := $(shell cd ../.. && pwd)
 
 .PHONY: setup attack clean
 
 setup:
-	python -m venv $(VENV)
-	$(VENV)/bin/pip install --quiet pybox
+	uv venv $(VENV)
+	uv pip install --quiet --python $(PYTHON) $(PYBOX_ROOT)
 	$(PYTHON) -c "import pybox; print('pybox', pybox.__version__)"
 	@echo "Setup complete. python -> $$(readlink $(VENV)/bin/python)"
 

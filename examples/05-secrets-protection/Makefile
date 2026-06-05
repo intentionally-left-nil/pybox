@@ -1,5 +1,6 @@
 VENV := .venv
 PYTHON := $(VENV)/bin/python
+PYBOX_ROOT := $(shell cd ../.. && pwd)
 
 # Fake credential files — safe to create and delete
 SSH_KEY    := $(HOME)/.ssh/id_rsa_fake
@@ -10,8 +11,8 @@ GCLOUD_CFG := $(HOME)/.config/gcloud/credentials_fake.json
 .PHONY: setup attack clean
 
 setup:
-	python -m venv $(VENV)
-	$(VENV)/bin/pip install --quiet pybox
+	uv venv $(VENV)
+	uv pip install --quiet --python $(PYTHON) $(PYBOX_ROOT)
 	$(PYTHON) -c "import pybox; print('pybox', pybox.__version__)"
 	@echo "Setup complete. python -> $$(readlink $(VENV)/bin/python)"
 

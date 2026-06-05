@@ -40,8 +40,14 @@ func main() {
 	// Locate config file relative to the argv[0] symlink (not its resolved target).
 	self := os.Args[0]
 	if !filepath.IsAbs(self) {
-		// execvp passes a relative path in some cases; make it absolute.
-		if cwd, err := os.Getwd(); err == nil {
+		// When the shell invokes a binary by name (e.g. "python" with the venv
+		// on PATH), execvp passes just the bare name as argv[0].  Joining with
+		// cwd would produce the wrong directory (e.g. /tmp/python instead of
+		// /venv/bin/python).  Search PATH instead to find the real location.
+		if found, err := findExecutable(self); err == nil {
+			self = found
+		} else if cwd, err := os.Getwd(); err == nil {
+			// Last resort: treat as relative to cwd (handles ./python style invocations).
 			self = filepath.Join(cwd, self)
 		}
 	}

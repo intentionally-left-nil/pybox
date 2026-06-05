@@ -1,29 +1,30 @@
 VENV := .venv
 PYTHON := $(VENV)/bin/python
-WRAPPER := $(VENV)/bin/pybox_wrapper.sh
+LAUNCHER := $(VENV)/bin/pybox_launcher
+PYBOX_ROOT := $(shell cd ../.. && pwd)
 
 .PHONY: setup attack clean
 
 setup:
-	python -m venv $(VENV)
-	$(VENV)/bin/pip install --quiet pybox
+	uv venv --seed $(VENV)
+	uv pip install --quiet --python $(PYTHON) $(PYBOX_ROOT)
 	$(PYTHON) -c "import pybox; print('pybox', pybox.__version__)"
 	@echo "Setup complete. python -> $$(readlink $(VENV)/bin/python)"
 
 attack: setup
-	@echo "--- Recording wrapper checksum before attack ---"
-	$(eval BEFORE := $(shell shasum -a 256 $(WRAPPER) | awk '{print $$1}'))
-	@echo "  $(WRAPPER): $(BEFORE)"
+	@echo "--- Recording launcher checksum before attack ---"
+	$(eval BEFORE := $(shell shasum -a 256 $(LAUNCHER) | awk '{print $$1}'))
+	@echo "  $(LAUNCHER): $(BEFORE)"
 	@echo ""
 	@echo "--- Installing malicious package via sandboxed pip ---"
 	$(VENV)/bin/pip install ./malicious_pkg
 	@echo ""
-	@echo "--- Verifying wrapper is unchanged ---"
-	$(eval AFTER := $(shell shasum -a 256 $(WRAPPER) | awk '{print $$1}'))
-	@echo "  $(WRAPPER): $(AFTER)"
+	@echo "--- Verifying launcher is unchanged ---"
+	$(eval AFTER := $(shell shasum -a 256 $(LAUNCHER) | awk '{print $$1}'))
+	@echo "  $(LAUNCHER): $(AFTER)"
 	@test "$(BEFORE)" = "$(AFTER)" \
-		&& echo "PASS: wrapper checksum unchanged" \
-		|| (echo "FAIL: wrapper was modified!" && exit 1)
+		&& echo "PASS: launcher checksum unchanged" \
+		|| (echo "FAIL: launcher was modified!" && exit 1)
 	@echo ""
 	@echo "--- Confirming sandbox still works ---"
 	$(PYTHON) verify.py
