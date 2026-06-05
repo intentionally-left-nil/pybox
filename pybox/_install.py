@@ -163,6 +163,10 @@ def _write_python_launcher_env(
     is already writable.  PYBOX_MKDIR pre-creates them so Jupyter never needs
     to walk up and mkdir the parents.
 
+    Note on PYTHON_HISTORY: CPython writes the interactive REPL history to
+    ~/.python_history by default, which the sandbox blocks.  We redirect it to
+    venv/tmp/.python_history so the REPL keeps history without hitting the deny.
+
     Note on TMPDIR: the system_write_macos/linux group (part of the default
     profile) grants write access to /tmp, /private/tmp, /var/folders, and
     $TMPDIR.  The python profile denies all of these to enforce write-only-to-CWD.
@@ -191,6 +195,7 @@ def _write_python_launcher_env(
         f"PYBOX_ENV_TMP={venv_tmp}",
         f"PYBOX_ENV_TEMP={venv_tmp}",
         f"PYBOX_ENV_VIRTUAL_ENV={venv_str}",
+        f"PYBOX_ENV_PYTHON_HISTORY={venv_tmp}/.python_history",
         f"PYBOX_ENV_JUPYTER_RUNTIME_DIR={jupyter_base}/runtime",
         f"PYBOX_ENV_JUPYTER_DATA_DIR={jupyter_base}/data",
         f"PYBOX_ENV_JUPYTER_CONFIG_DIR={jupyter_base}/config",
@@ -319,6 +324,7 @@ def _python_env_allow_vars() -> list[str]:
         "PYTHONPYCACHEPREFIX",
         "VIRTUAL_ENV",
         "VIRTUAL_ENV_PROMPT",
+        "PYTHON_HISTORY",
         "JUPYTER_*",
         "PYBOX_*",
         "NONO_CAP_FILE",
@@ -414,7 +420,7 @@ def _build_python_profile(venv_root: Path, python_exe_names: list[str]) -> dict:
         },
         "workdir": {"access": "readwrite"},
         "filesystem": {
-            "read": [venv_str, "$HOME/.CFUserTextEncoding"],
+            "read": [venv_str, "$HOME/.CFUserTextEncoding", "$HOME/.terminfo"],
             "write": [f"{venv_str}/__pycache__", f"{venv_str}/tmp"],
             "deny": deny_list,
             "bypass_protection": [venv_str],

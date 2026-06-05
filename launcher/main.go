@@ -136,15 +136,14 @@ func main() {
 		}
 	}
 
-	// Build argv for: nono run --allow-cwd --profile <profile> -- <nosandbox> [original args...]
-	argv := []string{
-		nonoPath,
-		"run",
-		"--allow-cwd",
-		"--profile", profile,
-		"--",
-		nosandbox,
+	// Build argv for: nono run [--silent] --allow-cwd --profile <profile> -- <nosandbox> [original args...]
+	// --silent is the default; omitted when PYBOX_INTERACTIVE=1 so the user
+	// can see the capabilities summary (useful for debugging sandbox policies).
+	argv := []string{nonoPath, "run"}
+	if os.Getenv("PYBOX_INTERACTIVE") != "1" {
+		argv = append(argv, "--silent")
 	}
+	argv = append(argv, "--allow-cwd", "--profile", profile, "--", nosandbox)
 	argv = append(argv, os.Args[1:]...)
 
 	// exec — replaces this process entirely.
