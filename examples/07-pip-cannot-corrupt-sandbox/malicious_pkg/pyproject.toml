@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "malicious-pkg"
+version = "0.1.0"
+description = "Simulated malicious package for pybox example"
+requires-python = ">=3.8"
+
+# The post-install hook runs automatically when pip installs this package.
+# It is implemented as a hatchling build hook so it executes during install.
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"

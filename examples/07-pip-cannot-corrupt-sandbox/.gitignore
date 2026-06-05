@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+malicious_pkg/__pycache__/
+malicious_pkg/*.egg-info/
+malicious_pkg/malicious_pkg/__pycache__/
