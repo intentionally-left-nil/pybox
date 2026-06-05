@@ -527,3 +527,80 @@ nono run --profile opencode --env-credential gemini_api_key -- opencode
 | Python SDK | https://nono.sh/docs/python/overview.md |
 | Node.js SDK | https://nono.sh/docs/typescript/overview.md |
 | Full docs index | https://nono.sh/docs/llms.txt |
+
+---
+
+## pybox Sandbox Policy Experiments
+
+Results from experiments run on macOS Seatbelt (nono 0.61.1) to validate the
+profile design for pybox before implementation.
+
+### Exp 1 — Deny subpath of a readwrite-granted parent (baseline)
+
+**Setup**: workdir outside venv, `filesystem.deny: [venv/bin]`, `workdir.access: readwrite`.
+
+| Target | read | write |
+|---|---|---|
+| `venv/lib/somelib.so` | ok | ok |
+| `venv/bin/python` | ok | **denied** |
+| `workdir/project_file.txt` | ok | ok |
+
+**Conclusion**: `filesystem.deny` on a subdirectory correctly prevents writes to that
+subtree while the parent has a read grant. Seatbelt deny-within-allow works as documented.
+
+### Exp 2 — Venv inside workdir
+
+**Setup**: workdir *is the parent of the venv* (`--workdir EXPDIR`, venv at `EXPDIR/venv`).
+The `--allow-cwd` grant therefore covers `EXPDIR/**` including `EXPDIR/venv/bin`.
+Profile still has `filesystem.deny: [venv/bin]`.
+
+| Target | read | write |
+|---|---|---|
+| `venv/bin/python` | ok | **denied** |
+| `venv/bin/pybox_wrapper.sh` | ok | **denied** |
+| `workdir/file.txt` | ok | ok |
+| Control (no deny): `venv/bin/python` | ok | ok |
+
+**Conclusion**: `filesystem.deny` wins over the parent `workdir: readwrite` grant even when
+the venv is a subdirectory of the workdir. The deny is enforced at the kernel level; the
+workdir grant does not subsume it. This is the macOS Seatbelt result; Linux Landlock (allow-list
+only) is a separate concern to test when the wrappers actually invoke nono.
+
+### Exp 3 — Venv named `.env`
+
+The `deny_shell_configs` group (active in the `default` profile) blocks the entire `.env`
+directory tree, because `.env` is a common name for shell environment files containing secrets.
+
+| Profile | Target | read | write |
+|---|---|---|---|
+| No `bypass_protection` | `.env/lib/somelib.so` | ok | ok |
+| No `bypass_protection` | `.env/bin/python` | **denied** | **denied** |
+| With `bypass_protection: [".env"]` | `.env/lib/somelib.so` | ok | ok |
+| With `bypass_protection: [".env"]` | `.env/bin/python` | ok | **denied** |
+
+**Conclusion**: `bypass_protection` is required for `.env`-named venvs to restore read access
+to the venv tree (needed for the interpreter and site-packages to work at all). Our own
+`filesystem.deny: [venv/bin]` still takes effect on top of the bypass. Including
+`bypass_protection` unconditionally is safe — it is a no-op for any other venv name.
+
+### Exp 4 — Pip profile: partial bin deny
+
+**Setup**: `filesystem.write: [venv/bin]` (pip needs to write console scripts), with
+`filesystem.deny` on specific files only (`python`, `python3`, `pybox_wrapper.sh`,
+`pybox_pip_wrapper.sh`, `nosandbox`).
+
+| Target | read | write | notes |
+|---|---|---|---|
+| `venv/bin/python` | ok | **denied** | exists |
+| `venv/bin/python3` | **denied** | **denied** | *does not exist* — deny blocks creation too |
+| `venv/bin/pybox_wrapper.sh` | ok | **denied** | exists |
+| `venv/bin/nosandbox` | **denied** | **denied** | directory |
+| `venv/bin/pytest` | ok | ok | existing console script |
+| `venv/bin/new_console_script` | — | ok | new file created successfully |
+| `venv/lib/somelib.so` | ok | ok | |
+
+**Conclusion**: File-level deny in nono blocks creation of non-existent files at the named
+path, not just writes to existing ones. This means enumerating `python3.X` names at install
+time (rather than relying on glob patterns) is the right approach — each name that needs
+protecting must be listed explicitly. Pip can still write new console-script entrypoints to
+`bin/`.
